@@ -71,12 +71,11 @@ jobs:
           BT="$ANDROID_HOME/build-tools/34.0.0"
           ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
 
-          mkdir -p build/compiled_res build/classes build/dex build/out build/assets
-          cp -r www build/assets/www
+          mkdir -p build/compiled_res build/classes build/dex build/out
 
           "$BT/aapt2" compile --dir android/res -o build/compiled_res/res.zip
           "$BT/aapt2" link -o build/out/unaligned.apk -I "$ANDROID_JAR" \
-            --manifest android/AndroidManifest.xml -A build/assets --java android/src \
+            --manifest android/AndroidManifest.xml --java android/src \
             --auto-add-overlay build/compiled_res/res.zip
 
           javac -source 1.8 -target 1.8 -bootclasspath "$ANDROID_JAR" \
@@ -85,9 +84,18 @@ jobs:
           "$BT/d8" --min-api 24 --lib "$ANDROID_JAR" --output build/dex \
             $(find build/classes -name "*.class")
 
-          cp build/dex/classes.dex .
-          "$BT/aapt" add build/out/unaligned.apk classes.dex
-          rm classes.dex
+          python3 - << 'PYEOF'
+          import zipfile, os
+          with zipfile.ZipFile('build/out/unaligned.apk', 'a', zipfile.ZIP_DEFLATED) as z:
+              z.write('build/dex/classes.dex', 'classes.dex')
+              for root, _, files in os.walk('www'):
+                  for fn in files:
+                      full = os.path.join(root, fn)
+                      rel = os.path.relpath(full, 'www').replace(os.sep, '/')
+                      arcname = 'assets/www/' + rel
+                      compress = zipfile.ZIP_STORED if fn.lower().endswith('.png') else zipfile.ZIP_DEFLATED
+                      z.write(full, arcname, compress_type=compress)
+          PYEOF
 
           "$BT/zipalign" -f -p 4 build/out/unaligned.apk build/out/aligned.apk
 

@@ -119,6 +119,35 @@
 
     <!-- ABA 1: RESUMO (DASHBOARD) -->
     <main id="tab-resumo" class="tab-content flex-1 space-y-4">
+
+      <!-- Banner: Ativar Leitor Nativo de Notificações -->
+      <div id="banner-notif-listener" class="hidden bg-amber-950/50 border border-amber-500/40 rounded-2xl p-3.5 space-y-2.5">
+        <div class="flex items-start gap-2.5">
+          <div class="p-1.5 bg-amber-500/20 rounded-lg text-amber-400 shrink-0 mt-0.5">
+            <i data-lucide="bell-ring" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-amber-200">Ativar Captura Automática de Gastos</h4>
+            <p class="text-[11px] text-slate-300 leading-relaxed mt-0.5">
+              Libere o acesso às notificações para o app registrar compras e pagamentos dos seus bancos sozinhos, 100% offline.
+            </p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="abrirDetalhesApp()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-semibold text-slate-200 py-2 px-2 rounded-xl transition">
+            1. Liberar Restritas (⋮)
+          </button>
+          <button onclick="abrirConfigNotif()" class="bg-amber-500 hover:bg-amber-400 text-[10px] font-bold text-slate-950 py-2 px-2 rounded-xl transition">
+            2. Ativar Leitor
+          </button>
+        </div>
+      </div>
+
+      <!-- Toast de compras capturadas -->
+      <div id="toast-captura" class="hidden bg-emerald-950/70 border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-200">
+        <span id="toast-captura-msg" class="font-semibold"></span>
+        <button onclick="document.getElementById('toast-captura').classList.add('hidden')" class="text-emerald-400 hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      </div>
       
       <!-- Card Principal: Limite & Teto -->
       <div class="bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/80 rounded-2xl p-5 shadow-xl relative overflow-hidden">
@@ -610,6 +639,26 @@
           </button>
         </form>
 
+        <!-- Leitor Nativo Automático -->
+        <div class="space-y-2 border-b border-slate-700/60 pb-4">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i> Leitor de Notificações Bancárias
+            </h4>
+            <span id="cfg-notif-status" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Verificando...</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">Reconhece compras de Nubank, Itaú, Mercado Pago, Inter, C6, Santander, etc. no celular sem internet.</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="abrirConfigNotif()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] py-2 px-2 rounded-lg text-slate-200 font-semibold transition">
+              Configurar Acesso
+            </button>
+            <button type="button" onclick="verLogsNotificacoes()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] py-2 px-2 rounded-lg text-slate-200 font-semibold transition">
+              Ver Notificações Lidas
+            </button>
+          </div>
+          <div id="cfg-notif-logs" class="hidden max-h-36 overflow-y-auto bg-slate-900/90 border border-slate-700 rounded-lg p-2 space-y-1.5 text-[10px] text-slate-300"></div>
+        </div>
+
         <!-- Segurança: PIN de 4 dígitos -->
         <div class="space-y-2 border-b border-slate-700/60 pb-4">
           <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -818,12 +867,15 @@
       localStorage.setItem('fin_ajustes_mes', JSON.stringify(monthlyAdjustments));
       localStorage.setItem('fin_limite', limiteMensal.toString());
       localStorage.setItem('fin_nome', userName);
+      sincronizarCartoesNativos();
     }
 
     function init() {
       carregarEstado();
       popularSelectCategorias();
       document.getElementById('disp-nome').textContent = userName;
+      sincronizarCartoesNativos();
+      sincronizarNotificacoesNativas();
       atualizarTudo();
 
       const savedPinHash = localStorage.getItem('fin_pin_hash');
@@ -835,6 +887,129 @@
         abrirOnboarding();
       }
       lucide.createIcons();
+    }
+
+    // =========================================================================
+    // LEITOR NATIVO DE NOTIFICAÇÕES (ANDROID BRIDGE)
+    // =========================================================================
+    function sincronizarCartoesNativos() {
+      if (window.AndroidBridge && typeof window.AndroidBridge.syncKnownCards === 'function') {
+        try {
+          const nomes = cards.map(c => (typeof c === 'string' ? c : (c.nome || '')).trim()).filter(Boolean);
+          window.AndroidBridge.syncKnownCards(JSON.stringify(nomes));
+        } catch (e) {}
+      }
+    }
+
+    window.sincronizarNotificacoesNativas = function() {
+      atualizarBannerNotificacao();
+      if (!window.AndroidBridge || typeof window.AndroidBridge.getPendingTransactions !== 'function') return;
+      try {
+        const raw = window.AndroidBridge.getPendingTransactions();
+        const items = JSON.parse(raw || '[]');
+        if (Array.isArray(items) && items.length > 0) {
+          const cardNames = cards.map(c => typeof c === 'string' ? c : c.nome);
+          const novos = items.map((it, idx) => {
+            let cardName = String(it.cartao || '').trim();
+            if (!cardName || cardName === 'Cartão') {
+              cardName = cardNames[0] || 'Cartão Principal';
+            } else {
+              const match = cards.find(c => (typeof c === 'string' ? c : c.nome).toLowerCase() === cardName.toLowerCase());
+              if (match) {
+                cardName = typeof match === 'string' ? match : match.nome;
+              } else {
+                const coresCycle = ['purple', 'orange', 'cyan', 'amber', 'rose', 'emerald', 'slate'];
+                const preset = (typeof PRESET_CARTOES !== 'undefined' ? PRESET_CARTOES : []).find(p => p.nome.toLowerCase() === cardName.toLowerCase());
+                cards.push({
+                  nome: cardName,
+                  cor: preset ? preset.cor : coresCycle[cards.length % coresCycle.length],
+                  vencimento: 'Fatura Aberta'
+                });
+                if (typeof popularSelectCartoes === 'function') popularSelectCartoes();
+                if (typeof renderCartoesConfig === 'function') renderCartoesConfig();
+              }
+            }
+            return {
+              id: safeId(it.id || ('notif_' + Date.now() + '_' + idx)),
+              data: String(it.data || ''),
+              mesRef: String(it.mesRef || getMesFromDataBR(it.data)),
+              cartao: cardName,
+              valor: Number(it.valor) || 0,
+              local: String(it.local || 'Compra Automática'),
+              categoria: categorizarAutomatico(it.local),
+              tipo: 'Notificação'
+            };
+          }).filter(x => x.valor > 0);
+
+          if (novos.length > 0) {
+            const existingIds = new Set(transactions.map(t => t.id));
+            const semDup = novos.filter(n => !existingIds.has(n.id));
+            if (semDup.length > 0) {
+              transactions = [...semDup.reverse(), ...transactions];
+              salvarLocal();
+              atualizarTudo();
+              const toast = document.getElementById('toast-captura');
+              const msg = document.getElementById('toast-captura-msg');
+              if (toast && msg) {
+                msg.textContent = `${semDup.length} nova(s) compra(s) capturada(s) automaticamente!`;
+                toast.classList.remove('hidden');
+              }
+            }
+          }
+          window.AndroidBridge.clearPendingTransactions();
+        }
+      } catch (e) {}
+    };
+
+    function atualizarBannerNotificacao() {
+      const banner = document.getElementById('banner-notif-listener');
+      const statusEl = document.getElementById('cfg-notif-status');
+      if (!window.AndroidBridge || typeof window.AndroidBridge.isNotificationListenerEnabled !== 'function') {
+        if (banner) banner.classList.add('hidden');
+        return;
+      }
+      const ativo = window.AndroidBridge.isNotificationListenerEnabled();
+      if (banner) banner.classList.toggle('hidden', ativo);
+      if (statusEl) {
+        statusEl.textContent = ativo ? 'Ativo 🟢' : 'Desativado';
+        statusEl.className = ativo
+          ? 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300'
+          : 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300';
+      }
+    }
+
+    function abrirConfigNotif() {
+      if (window.AndroidBridge && window.AndroidBridge.openNotificationListenerSettings) {
+        window.AndroidBridge.openNotificationListenerSettings();
+      }
+    }
+
+    function abrirDetalhesApp() {
+      if (window.AndroidBridge && window.AndroidBridge.openAppDetailsSettings) {
+        window.AndroidBridge.openAppDetailsSettings();
+      }
+    }
+
+    function verLogsNotificacoes() {
+      const box = document.getElementById('cfg-notif-logs');
+      if (!window.AndroidBridge || typeof window.AndroidBridge.getNotificationLogs !== 'function') return;
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        try {
+          const logs = JSON.parse(window.AndroidBridge.getNotificationLogs() || '[]');
+          if (!logs.length) {
+            box.innerHTML = '<div class="text-slate-500 text-center py-2">Nenhuma notificação bancária interceptada ainda.</div>';
+          } else {
+            box.innerHTML = logs.map(l => `
+              <div class="border-b border-slate-800 pb-1">
+                <div class="text-slate-400">${escapeHTML(l.hora)} • ${escapeHTML(l.app)}</div>
+                <div class="text-white font-semibold">${escapeHTML(l.titulo)}</div>
+                <div class="text-slate-300">${escapeHTML(l.texto)}</div>
+              </div>
+            `).join('');
+          }
+        } catch (e) {}
+      }
     }
 
     function popularSelectCategorias() {

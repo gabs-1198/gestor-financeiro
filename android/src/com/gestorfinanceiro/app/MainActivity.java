@@ -6,12 +6,14 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
@@ -155,6 +157,14 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.evaluateJavascript("(function(){ window.sincronizarNotificacoesNativas && window.sincronizarNotificacoesNativas(); })()", null);
+        }
+    }
+
+    @Override
     public void onBackPressed() {
         if (webView != null) {
             webView.evaluateJavascript("(function(){ return window.handleAndroidBack ? window.handleAndroidBack() : 'exit'; })()", new ValueCallback<String>() {
@@ -175,6 +185,75 @@ public class MainActivity extends Activity {
     }
 
     public class AndroidBridge {
+        @JavascriptInterface
+        public boolean isNotificationListenerEnabled() {
+            try {
+                String flat = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+                return flat != null && flat.contains(getPackageName());
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public void openNotificationListenerSettings() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "Abra Configurações > Acesso a notificações.", Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openAppDetailsSettings() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        startActivity(intent);
+                    } catch (Exception ignored) {}
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getPendingTransactions() {
+            SharedPreferences prefs = getSharedPreferences(NotificacaoListener.PREFS_NAME, MODE_PRIVATE);
+            return prefs.getString(NotificacaoListener.KEY_PENDING, "[]");
+        }
+
+        @JavascriptInterface
+        public void clearPendingTransactions() {
+            SharedPreferences prefs = getSharedPreferences(NotificacaoListener.PREFS_NAME, MODE_PRIVATE);
+            prefs.edit().putString(NotificacaoListener.KEY_PENDING, "[]").apply();
+        }
+
+        @JavascriptInterface
+        public String getNotificationLogs() {
+            SharedPreferences prefs = getSharedPreferences(NotificacaoListener.PREFS_NAME, MODE_PRIVATE);
+            return prefs.getString(NotificacaoListener.KEY_LOGS, "[]");
+        }
+
+        @JavascriptInterface
+        public void syncKnownCards(String jsonArrayString) {
+            if (jsonArrayString == null) return;
+            SharedPreferences prefs = getSharedPreferences(NotificacaoListener.PREFS_NAME, MODE_PRIVATE);
+            prefs.edit().putString(NotificacaoListener.KEY_KNOWN_CARDS, jsonArrayString).apply();
+        }
+
+        @JavascriptInterface
+        public boolean testNotificationParse(String cartao, String texto) {
+            return NotificacaoListener.processarNotificacao(MainActivity.this, cartao, "bancoteste", "Teste", texto);
+        }
+
         @JavascriptInterface
         public void saveFile(final String rawFilename, final String content) {
             runOnUiThread(new Runnable() {

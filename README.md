@@ -15,6 +15,7 @@ Um aplicativo financeiro pessoal **100% offline, gratuito e privado**, criado pa
 
 ## ✨ Funcionalidades
 
+- **🔔 Leitor Automático de Compras (Offline):** Intercepta notificações bancárias de compras em tempo real (Nubank, Itaú, Mercado Pago, Inter, C6, Santander, Bradesco, PicPay, etc.) e cadastra seus gastos automaticamente sem precisar abrir o app nem digitar nada!
 - **Assistente de Configuração Inicial:** Personalize seu nome, teto mensal de gastos e adicione quantos cartões quiser (Nubank, Itaú, Mercado Pago, Inter, C6, Santander, etc.).
 - **Histórico Mensal & Comparativo:** Navegue entre meses (`◀ Mês ▶`) para consultar faturas passadas e ver a variação percentual em relação ao mês anterior.
 - **Editar Compras & Regras Automáticas:** Toque em qualquer compra para corrigir valores/categorias e salve regras do tipo *"Sempre classificar esta loja assim"* para importações futuras.
@@ -27,11 +28,17 @@ Um aplicativo financeiro pessoal **100% offline, gratuito e privado**, criado pa
 
 ---
 
-## 📲 Como Instalar no Android
+## 📲 Como Instalar e Ativar a Captura Automática no Android
 
 1. Acesse a aba **Releases** deste repositório no GitHub e baixe o arquivo **`GestorFinanceiro.apk`**.
-2. Toque no arquivo baixado no seu Android para instalar.
-3. Na primeira abertura, preencha seu nome, teto mensal e escolha seus cartões (ou toque em *"Testar com dados fictícios"* para conhecer o app).
+2. Toque no arquivo baixado no seu celular Android para instalar.
+3. Na primeira abertura, configure seu perfil e cartões.
+4. **Ativação da Captura Automática de Notificações (Android 13+):**
+   - O Android restringe por padrão o acesso a notificações em aplicativos instalados fora da Play Store (*sideload*).
+   - O próprio app exibe um banner com 2 passos simples:
+     1. Toque em **"1. Liberar Restritas"**: abrirá as Informações do App. Toque nos **três pontinhos (⋮)** no topo direito e selecione **"Permitir configurações restritas"** (confirme com sua digital/PIN).
+     2. Volte ao app e toque em **"2. Ativar Leitor"**: marque a chavinha do **Gestor Financeiro**.
+   - Pronto! A partir desse momento, qualquer compra ou pagamento aprovado no seu cartão será capturado e categorizado no app na hora.
 
 ---
 
