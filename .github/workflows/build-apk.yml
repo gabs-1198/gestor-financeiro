@@ -1,0 +1,80 @@
+name: Compilar APK Android
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar Android Build Tools e Platform 34
+        run: |
+          sdkmanager "build-tools;34.0.0" "platforms;android-34"
+
+      - name: Compilar e Assinar APK
+        run: |
+          BT="$ANDROID_HOME/build-tools/34.0.0"
+          ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
+
+          mkdir -p build/compiled_res build/classes build/dex build/out build/assets
+          cp -r www build/assets/www
+
+          "$BT/aapt2" compile --dir android/res -o build/compiled_res/res.zip
+          "$BT/aapt2" link -o build/out/unaligned.apk -I "$ANDROID_JAR" \
+            --manifest android/AndroidManifest.xml -A build/assets --java android/src \
+            --auto-add-overlay build/compiled_res/res.zip
+
+          javac -source 1.8 -target 1.8 -bootclasspath "$ANDROID_JAR" \
+            -d build/classes $(find android/src -name "*.java")
+
+          "$BT/d8" --min-api 24 --lib "$ANDROID_JAR" --output build/dex \
+            $(find build/classes -name "*.class")
+
+          cp build/dex/classes.dex .
+          "$BT/aapt" add build/out/unaligned.apk classes.dex
+          rm classes.dex
+
+          "$BT/zipalign" -f -p 4 build/out/unaligned.apk build/out/aligned.apk
+
+          keytool -genkeypair -v -keystore build/ci-release.keystore -alias gestor \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass ci123456 -keypass ci123456 \
+            -dname "CN=GestorFinanceiro, O=OpenSource, C=BR"
+
+          "$BT/apksigner" sign --ks build/ci-release.keystore \
+            --ks-pass pass:ci123456 --key-pass pass:ci123456 --ks-key-alias gestor \
+            --out build/GestorFinanceiro.apk build/out/aligned.apk
+
+          "$BT/apksigner" verify --verbose build/GestorFinanceiro.apk
+
+      - name: Salvar APK como Artefato do Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: GestorFinanceiro-APK
+          path: build/GestorFinanceiro.apk
+
+      - name: Publicar no GitHub Releases (em tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/GestorFinanceiro.apk
+          name: Gestor Financeiro ${{ github.ref_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

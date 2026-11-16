@@ -1,0 +1,30 @@
+# Chaves privadas e assinaturas (NUNCA subir para o GitHub!)
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
+
+# Arquivos de compilação temporários
+build/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+android/src/**/R.java
+
+# Dados pessoais e backups financeiros
+*.csv
+*.xlsx
+*.xls
+*.ofx
+backup_*.json
+extrato_*.csv
+tx_data.json
+
+# Ambiente e sistema
+.DS_Store
+Thumbs.db
+local.properties
+.env
