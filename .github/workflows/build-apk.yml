@@ -62,6 +62,11 @@ jobs:
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
 
       - name: Compilar e Assinar APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
         run: |
           BT="$ANDROID_HOME/build-tools/34.0.0"
           ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
@@ -86,13 +91,25 @@ jobs:
 
           "$BT/zipalign" -f -p 4 build/out/unaligned.apk build/out/aligned.apk
 
-          keytool -genkeypair -v -keystore build/ci-release.keystore -alias gestor \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass ci123456 -keypass ci123456 \
-            -dname "CN=GestorFinanceiro, O=OpenSource, C=BR"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > build/release.keystore
+            KS_PATH="build/release.keystore"
+            KS_PASS="${KEYSTORE_PASS}"
+            KS_ALIAS="${KEY_ALIAS}"
+            K_PASS="${KEY_PASS:-$KS_PASS}"
+          else
+            keytool -genkeypair -v -keystore build/ci-release.keystore -alias gestor \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass ci123456 -keypass ci123456 \
+              -dname "CN=GestorFinanceiro, O=OpenSource, C=BR"
+            KS_PATH="build/ci-release.keystore"
+            KS_PASS="ci123456"
+            KS_ALIAS="gestor"
+            K_PASS="ci123456"
+          fi
 
-          "$BT/apksigner" sign --ks build/ci-release.keystore \
-            --ks-pass pass:ci123456 --key-pass pass:ci123456 --ks-key-alias gestor \
+          "$BT/apksigner" sign --ks "$KS_PATH" \
+            --ks-pass "pass:$KS_PASS" --key-pass "pass:$K_PASS" --ks-key-alias "$KS_ALIAS" \
             --out build/GestorFinanceiro.apk build/out/aligned.apk
 
           "$BT/apksigner" verify --verbose build/GestorFinanceiro.apk

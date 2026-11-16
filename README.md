@@ -16,16 +16,14 @@ Um aplicativo financeiro pessoal **100% offline, gratuito e privado**, criado pa
 ## ✨ Funcionalidades
 
 - **Assistente de Configuração Inicial:** Personalize seu nome, teto mensal de gastos e adicione quantos cartões quiser (Nubank, Itaú, Mercado Pago, Inter, C6, Santander, etc.).
+- **Histórico Mensal & Comparativo:** Navegue entre meses (`◀ Mês ▶`) para consultar faturas passadas e ver a variação percentual em relação ao mês anterior.
+- **Editar Compras & Regras Automáticas:** Toque em qualquer compra para corrigir valores/categorias e salve regras do tipo *"Sempre classificar esta loja assim"* para importações futuras.
+- **Parcelamentos & Metas por Categoria:** Lance compras parceladas (`1x` a `12x`) projetadas automaticamente nos próximos meses e crie tetos individuais por categoria.
 - **Subir Faturas para Atualizar o Preço:**
-  - Envie arquivos exportados pelo seu banco (`.xlsx`, `.xls`, `.csv`, `.ofx`, `.txt`).
-  - Cole texto copiado direto do app do banco.
-  - Ou atualize apenas o valor fechado da fatura manualmente.
-  - Categorização automática inteligente (`Comida`, `Transporte`, `Lazer & Assinaturas`, `Compras Online`, `Saúde`, `Moradia & Contas`).
-- **Gráficos e Raio-X de Hábitos:**
-  - Gráfico de rosca por categoria + comparativo por cartão.
-  - Detector de micro-compras repetitivas e simulador interativo de economia.
-- **Backup & Exportação:**
-  - Exporte seus dados em `.json` (para restaurar em outro aparelho) ou `.csv` (para abrir no Excel).
+  - Envie arquivos exportados pelo seu banco (`.xlsx`, `.xls`, `.csv`, `.ofx`, `.txt`), cole texto ou ajuste só o valor fechado.
+  - Pré-visualização interativa com seleção de itens, troca de categoria por linha e escolha do mês de destino.
+- **Proteção por PIN (4 dígitos) & Botão Voltar Nativo:** Trave a abertura do app com PIN opcional nas configurações e navegue entre abas/modais usando o botão voltar do Android.
+- **Gráficos, Hábitos & Backup:** Gráficos interativos, detector de micro-compras, simulador de economia e exportação/restauração em `.json` ou `.csv`.
 
 ---
 
