@@ -78,7 +78,7 @@ with zipfile.ZipFile(r'build\out\unaligned.apk', 'a', zipfile.ZIP_DEFLATED) as z
     Write-Host "8. Assinando APK..."
     $outDir = Split-Path -Parent $OutApk
     if ($outDir -and -not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
-    & "$bt\apksigner.bat" sign --ks $keystore --ks-pass pass:dev123456 --key-pass pass:dev123456 --ks-key-alias gestor --out $OutApk build\out\aligned.apk
+    & "$bt\apksigner.bat" sign --v1-signing-enabled true --v2-signing-enabled true --ks $keystore --ks-pass pass:dev123456 --key-pass pass:dev123456 --ks-key-alias gestor --out $OutApk build\out\aligned.apk
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     Write-Host "9. Verificando assinatura..."

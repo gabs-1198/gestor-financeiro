@@ -58,6 +58,14 @@ O APK será gerado em `build\GestorFinanceiro.apk` (que está protegido no `.git
 
 ---
 
+## 📚 Documentação Técnica e Especificação de Arquitetura
+
+O projeto conta com um manual técnico abrangente em PDF (18 páginas), formatado nos padrões de documentação de referência da indústria de software (SAS / Whitepaper):
+- **Download do Manual:** [Manual_Tecnico_Gestor_Financeiro.pdf](docs/Manual_Tecnico_Gestor_Financeiro.pdf)
+- **Conteúdo Coberto:** Filosofia *Zero-Cloud* e modelo de ameaças STRIDE, diagramas de arquitetura em camadas, funcionamento interno do `NotificationListenerService`, algoritmos de parsing e extração heurística por regex, sanitização contra CWE-1236, pipeline de compilação determinística sem Gradle e manual de operação.
+
+---
+
 ## 📄 Licença
 
 Distribuído sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
