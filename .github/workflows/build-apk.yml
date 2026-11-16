@@ -23,13 +23,43 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Instalar Android Build Tools e Platform 34
+      - name: Configurar Android Build Tools e Platform 34
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "build-tools;34.0.0" "platforms;android-34"
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          mkdir -p "$SDK/build-tools" "$SDK/platforms"
+          SM=$(find "$SDK" -name sdkmanager -type f 2>/dev/null | head -n 1 || true)
+          if [ -n "$SM" ]; then
+            yes | "$SM" --licenses >/dev/null 2>&1 || true
+            "$SM" "build-tools;34.0.0" "platforms;android-34"
+          else
+            python3 - << 'PYEOF'
+          import urllib.request, zipfile, os
+
+          sdk = os.environ.get('ANDROID_HOME') or '/usr/local/lib/android/sdk'
+
+          def ensure(url, parent, target_name):
+              dst = os.path.join(parent, target_name)
+              if os.path.exists(dst):
+                  print('Already exists:', dst)
+                  return
+              zp = '/tmp/' + os.path.basename(url)
+              print('Downloading:', url)
+              urllib.request.urlretrieve(url, zp)
+              with zipfile.ZipFile(zp, 'r') as z:
+                  top = z.namelist()[0].split('/')[0]
+                  z.extractall(parent)
+              os.remove(zp)
+              src = os.path.join(parent, top)
+              if src != dst and os.path.exists(src) and not os.path.exists(dst):
+                  os.rename(src, dst)
+              print('Ready:', dst)
+
+          ensure('https://dl.google.com/android/repository/build-tools_r34-linux.zip', os.path.join(sdk, 'build-tools'), '34.0.0')
+          ensure('https://dl.google.com/android/repository/platform-34-ext12_r01.zip', os.path.join(sdk, 'platforms'), 'android-34')
+          PYEOF
+            chmod -R +x "$SDK/build-tools/34.0.0" || true
+          fi
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
 
       - name: Compilar e Assinar APK
         run: |
