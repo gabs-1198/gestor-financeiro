@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Script de Geracao de Documentacao Tecnica Oficial em PDF
-Gestor Financeiro Offline v2.2.0
+Gestor Financeiro Offline v2.3.0
 """
 import os
 import subprocess
@@ -342,7 +342,7 @@ def build_html():
   <div class="cover-meta-grid">
     <div class="cover-meta-item">
       <strong>Versão do Sistema</strong>
-      <span>v2.2.0 (Build Code: 4)</span>
+      <span>v2.3.0 (Build Code: 5)</span>
     </div>
     <div class="cover-meta-item">
       <strong>Classificação do Documento</strong>
@@ -419,6 +419,12 @@ A quase totalidade dos aplicativos financeiros comerciais no mercado contemporâ
       <td>Nov/2026</td>
       <td>Leitor Nativo de Notificações</td>
       <td>Implementação do <code>NotificationListenerService</code> Java nativo, interceptador de compras em tempo real para bancos brasileiros, ponte de comunicação bidirecional com o WebView, bypass de restrições de sideload do Android 13+.</td>
+    </tr>
+    <tr>
+      <td><strong>v2.3.0</strong></td>
+      <td>Nov/2026</td>
+      <td>Leitura Integral, Filtro de Crédito Estrito e Aprendizado Contínuo</td>
+      <td>Extração profunda de todos os campos de notificação do Android (BigText, Lines, Ticker), filtro estrito de Cartão de Crédito com rejeição determinística de débito, saldo e Pix, limpeza inteligente de gateways de pagamento (PG*, MP*, etc.), sincronização bidirecional de regras aprendidas com atualização retroativa de lançamentos existentes e persistência compartilhada em SharedPreferences.</td>
     </tr>
   </tbody>
 </table>
@@ -635,11 +641,17 @@ Quando qualquer aplicativo publica uma notificação, o método <code>onNotifica
 { Contém termos negativos? } -------------- SIM ----> [Descarta (Cashback, Fatura Aberta, Estorno, etc)]
              | NÃO
              v
+{ É Compra em Cartão de CRÉDITO? } ------ NÃO ----> [Descarta (Débito, Pix, Saldo em Conta, Boleto)]
+             | SIM
+             v
 { Valor R$ extraído com sucesso (&gt; 0)? } --- NÃO ---> [Descarta]
              | SIM
              v
 { Contém contexto transacional de compra? } - NÃO ---> [Descarta]
              | SIM
+             v
+{ Aplica Regras Aprendidas pelo Usuário? } -- SIM ----> [Substitui Nome Limpo, Cat e Cartão]
+             | NÃO
              v
 { Identifica Cartão cadastrado ou banco? } -- NÃO ---> [Atribui Cartão Padrão]
              | SIM
@@ -649,6 +661,27 @@ Quando qualquer aplicativo publica uma notificação, o método <code>onNotifica
              v
 [Grava no SharedPreferences (pending queue)] ----> [Notifica WebView no onResume]
 </div>
+
+<h2>3.2 Extração Profunda de Texto (Full Notification Bundle Extraction)</h2>
+<p>
+Notificações ricas no Android 10+ podem fragmentar títulos e mensagens longas entre diversos campos de metadados internos da classe <code>Notification.extras</code>. O leitor nativo realiza varredura exaustiva nos seguintes canais:
+</p>
+<ul>
+  <li><code>Notification.EXTRA_TITLE</code> e <code>EXTRA_TITLE_BIG</code> (captura cabeçalho e razão social expandida).</li>
+  <li><code>Notification.EXTRA_TEXT</code> e <code>EXTRA_BIG_TEXT</code> (corpo principal com valor e cartão).</li>
+  <li><code>Notification.EXTRA_SUB_TEXT</code>, <code>EXTRA_SUMMARY_TEXT</code> e <code>EXTRA_INFO_TEXT</code>.</li>
+  <li><code>Notification.EXTRA_TEXT_LINES</code> (varredura recursiva de arrays de linhas em mensagens agrupadas).</li>
+  <li><code>StatusBarNotification.getNotification().tickerText</code> (linha de barra de status legada).</li>
+</ul>
+
+<h2>3.3 Validação Estrita de Cartão de Crédito</h2>
+<p>
+Para impedir contaminação da planilha com transações à vista ou operações bancárias que não comprometem o limite de crédito, o método <code>isStrictCreditCard()</code> aplica um filtro duplo determinístico:
+</p>
+<ol>
+  <li><strong>Rejeição de Não-Crédito:</strong> Descarte automático caso o texto consolidado contenha termos como <i>"débito"</i>, <i>"saldo da conta"</i>, <i>"pix enviado"</i>, <i>"transferência"</i>, <i>"boleto pago"</i> ou <i>"empréstimo"</i>.</li>
+  <li><strong>Confirmação de Crédito:</strong> Validação explícita da menção a <i>"crédito"</i>, bandeiras de cartão (<i>"Visa"</i>, <i>"Mastercard"</i>, <i>"Elo"</i>), menção ordinal de parcelas (<i>"1x"</i>, <i>"em 3x"</i>, <i>"parcela"</i>) ou identificação do nome de cartão previamente cadastrado pelo usuário.</li>
+</ol>
 
 <h2>3.2 Heurísticas de Expressões Regulares (Regex Parsing)</h2>
 <p>
@@ -819,10 +852,16 @@ O sistema inclui um dicionário léxico pré-carregado com mais de 100 raízes s
   <li><strong>Outros:</strong> categoria padrão de fallback.</li>
 </ul>
 
-<h3>Aprendizado Contínuo com Regras Customizadas</h3>
+<h3>5.1.2 Motor de Aprendizado Contínuo (Continuous Learning Engine)</h3>
 <p>
-Sempre que o usuário edita uma compra e altera manualmente sua categoria, a interface oferece a opção de <i>"Salvar regra para compras futuras nesta loja"</i>. A chave do estabelecimento é normalizada (removendo acentos, pontuações e convertendo para minúsculas) e inserida no objeto <code>customRules</code>:
+A partir da versão v2.3.0, o aplicativo transcende a simples memorização de categorias: ao editar qualquer transação na tabela, o usuário treina o sistema para reconhecer a loja comercial real, seu cartão usual e sua categoria padrão:
 </p>
+<ul>
+  <li><strong>Limpeza e Eliminação de Gateways:</strong> Gateways de pagamento como <code>PG *</code>, <code>MP *</code>, <code>IFOOD *</code>, <code>PAG*</code> são automaticamente isolados da chave semântica.</li>
+  <li><strong>Atualização Retroativa Automática:</strong> Ao renomear um lançamento (ex: de <i>"PG *SUPERMERC"</i> para <i>"Supermercado Extra"</i>), o motor varre todo o histórico da tabela e atualiza instantaneamente todos os lançamentos passados daquele mesmo estabelecimento.</li>
+  <li><strong>Sincronização Nativa Bidirecional:</strong> As regras aprendidas (<code>learnedRules</code>) são sincronizadas em tempo real com o subsistema nativo Android via <code>AndroidBridge.syncLearnedRules()</code>, sendo salvas em <code>SharedPreferences</code> para que o <code>NotificacaoListener</code> já as aplique nativamente no momento exato em que a notificação é recebida em segundo plano.</li>
+  <li><strong>Gerenciamento no Painel de Ajustes:</strong> O usuário possui visualização completa de todas as lojas aprendidas com contador dinâmico e opção de exclusão granular ou reset total de aprendizado.</li>
+</ul>
 <pre><code>// Prioridade de Classificação
 function categorizarAutomatico(estabelecimento) {
   const norm = removerAcentos(estabelecimento).toLowerCase().trim();
@@ -1143,7 +1182,7 @@ Algumas fabricantes Android (Xiaomi/MIUI, Samsung/OneUI, Motorola e Huawei) impl
 </dl>
 
 <div style="margin-top: 40px; padding-top: 15px; border-top: 1px solid #cbd5e1; text-align: center; font-size: 8pt; color: #64748b;">
-  Fim da Especificação Técnica Oficial — Projeto Gestor Financeiro Offline v2.2.0 — Licença MIT
+  Fim da Especificação Técnica Oficial — Projeto Gestor Financeiro Offline v2.3.0 — Licença MIT
 </div>
 
 </body>
@@ -1152,7 +1191,7 @@ Algumas fabricantes Android (Xiaomi/MIUI, Samsung/OneUI, Motorola e Huawei) impl
     return html_content
 
 def main():
-    base_dir = r"c:\Users\Usuario\Downloads\Projetos\Perguntas Aleatórias\Controle_Financeiro"
+    base_dir = r"c:\Users\Usuario\Downloads\Projetos\Controle-Financeiro-Gastos"
     html_path = os.path.join(base_dir, "documentacao_tecnica.html")
     pdf_out1 = os.path.join(base_dir, "utilizáveis", "Manual_Tecnico_Gestor_Financeiro.pdf")
     pdf_out2 = os.path.join(base_dir, "Projeto-GitHub", "docs", "Manual_Tecnico_Gestor_Financeiro.pdf")

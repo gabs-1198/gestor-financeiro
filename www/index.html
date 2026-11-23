@@ -543,9 +543,9 @@
       </div>
     </div>
 
-    <!-- Modal Editar Gasto + Regra Automática -->
+    <!-- Modal Editar Gasto + Aprendizado Inteligente -->
     <div id="modalEditarGasto" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div class="bg-cardBg border border-slate-700 w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4">
+      <div class="bg-cardBg border border-slate-700 w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-3.5 max-h-[92vh] overflow-y-auto">
         <div class="flex justify-between items-center">
           <h3 class="text-sm font-bold text-white flex items-center gap-2">
             <i data-lucide="pencil" class="w-4 h-4 text-brand-400"></i> Editar Lançamento
@@ -554,9 +554,22 @@
         </div>
         <form onsubmit="salvarEdicaoGasto(event)" class="space-y-3">
           <input type="hidden" id="ed-id">
+          <input type="hidden" id="ed-orig-local">
+          <input type="hidden" id="ed-orig-rawlocal">
+          <input type="hidden" id="ed-orig-rawtexto">
+
+          <!-- Exibição do Texto Completo da Notificação Original -->
+          <div id="ed-notif-box" class="hidden text-[10.5px] bg-slate-900/90 border border-amber-500/30 rounded-xl p-3 space-y-1">
+            <div class="flex items-center gap-1.5 text-amber-300 font-bold text-[11px]">
+              <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+              <span>Notificação Completa do Banco:</span>
+            </div>
+            <p id="ed-notif-raw" class="text-slate-300 font-mono text-[10px] leading-relaxed break-words select-text bg-black/40 p-2 rounded-lg"></p>
+          </div>
+
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="text-[11px] text-slate-400 font-medium">Cartão / Meio</label>
+              <label class="text-[11px] text-slate-400 font-medium">Cartão de Crédito</label>
               <select id="ed-cartao" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white mt-0.5"></select>
             </div>
             <div>
@@ -565,8 +578,11 @@
             </div>
           </div>
           <div>
-            <label class="text-[11px] text-slate-400 font-medium">Estabelecimento</label>
-            <input type="text" id="ed-local" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white mt-0.5">
+            <label class="text-[11px] text-slate-400 font-medium flex items-center justify-between">
+              <span>Estabelecimento / Local Real</span>
+              <span class="text-[10px] text-indigo-400 font-normal">Onde foi comprado</span>
+            </label>
+            <input type="text" id="ed-local" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white mt-0.5" placeholder="Ex: Posto Shell, iFood, Mercado Extra">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -578,10 +594,20 @@
               <select id="ed-cat" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white mt-0.5"></select>
             </div>
           </div>
-          <label class="flex items-center gap-2 text-[11px] text-blue-200 bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5 cursor-pointer">
-            <input type="checkbox" id="ed-regra" class="rounded bg-slate-800 border-slate-600">
-            <span>Sempre categorizar lojas com esse nome assim (aplicar em todas existentes e futuras)</span>
-          </label>
+
+          <!-- Card de Aprendizado Contínuo -->
+          <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-2.5">
+            <label class="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" id="ed-aprender" checked class="rounded bg-slate-800 border-indigo-400 text-indigo-600 mt-0.5 w-4 h-4">
+              <div class="text-[11px]">
+                <span class="font-bold text-indigo-200 flex items-center gap-1">✨ Ensinar o Aplicativo (Aprendizado)</span>
+                <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">
+                  Lembrar deste nome, categoria e cartão para as próximas compras desta loja e atualizar compras idênticas já cadastradas.
+                </p>
+              </div>
+            </label>
+          </div>
+
           <div class="flex gap-2 pt-1">
             <button type="button" onclick="excluirDaEdicao()" class="px-4 bg-rose-950/60 hover:bg-rose-900/70 border border-rose-500/30 text-rose-300 font-bold text-xs py-2.5 rounded-lg transition">
               Excluir
@@ -657,6 +683,23 @@
             </button>
           </div>
           <div id="cfg-notif-logs" class="hidden max-h-36 overflow-y-auto bg-slate-900/90 border border-slate-700 rounded-lg p-2 space-y-1.5 text-[10px] text-slate-300"></div>
+        </div>
+
+        <!-- Memória e Lojas Aprendidas com suas Edições -->
+        <div class="space-y-2 border-b border-slate-700/60 pb-4">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i> Lojas & Regras Aprendidas
+            </h4>
+            <span id="cfg-aprendizado-badge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">0 aprendidas</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-snug">
+            O app memoriza automaticamente como você renomeia e categoriza compras para aplicar sozinho nas próximas notificações.
+          </p>
+          <button type="button" onclick="toggleVerLojasAprendidas()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] py-2 px-2 rounded-lg text-slate-200 font-semibold transition flex items-center justify-center gap-1.5">
+            <i data-lucide="brain" class="w-3.5 h-3.5 text-indigo-400"></i> Ver / Limpar Memória de Lojas
+          </button>
+          <div id="cfg-aprendizado-lista" class="hidden max-h-48 overflow-y-auto bg-slate-900/90 border border-slate-700 rounded-lg p-2 space-y-1.5 text-[10px] text-slate-300"></div>
         </div>
 
         <!-- Segurança: PIN de 4 dígitos -->
@@ -820,6 +863,7 @@
     let transactions = [];
     let cards = [];
     let customRules = {};      // { "nome_loja_normalizado": "Categoria" }
+    let learnedRules = {};     // { "chave_loja": { local: "Nome Limpo", categoria: "Cat", cartao: "Cartão" } }
     let categoryGoals = {};    // { "Comida": 800 }
     let monthlyAdjustments = {}; // { "2026-11": { "Itaú": -495.90 } }
     let limiteMensal = 2500.00;
@@ -848,6 +892,7 @@
           { nome: 'Itaú', cor: 'orange', vencimento: 'Fatura Aberta' }
         ];
         customRules = JSON.parse(localStorage.getItem('fin_regras_cat')) || {};
+        learnedRules = JSON.parse(localStorage.getItem('fin_learned_rules')) || {};
         categoryGoals = JSON.parse(localStorage.getItem('fin_metas_cat')) || {};
         monthlyAdjustments = JSON.parse(localStorage.getItem('fin_ajustes_mes')) || {};
 
@@ -863,18 +908,19 @@
       localStorage.setItem('fin_transacoes', JSON.stringify(transactions));
       localStorage.setItem('fin_cards', JSON.stringify(cards));
       localStorage.setItem('fin_regras_cat', JSON.stringify(customRules));
+      localStorage.setItem('fin_learned_rules', JSON.stringify(learnedRules));
       localStorage.setItem('fin_metas_cat', JSON.stringify(categoryGoals));
       localStorage.setItem('fin_ajustes_mes', JSON.stringify(monthlyAdjustments));
       localStorage.setItem('fin_limite', limiteMensal.toString());
       localStorage.setItem('fin_nome', userName);
-      sincronizarCartoesNativos();
+      sincronizarRegrasNativas();
     }
 
     function init() {
       carregarEstado();
       popularSelectCategorias();
       document.getElementById('disp-nome').textContent = userName;
-      sincronizarCartoesNativos();
+      sincronizarRegrasNativas();
       sincronizarNotificacoesNativas();
       atualizarTudo();
 
@@ -890,14 +936,21 @@
     }
 
     // =========================================================================
-    // LEITOR NATIVO DE NOTIFICAÇÕES (ANDROID BRIDGE)
+    // LEITOR NATIVO DE NOTIFICAÇÕES (ANDROID BRIDGE) & APRENDIZADO
     // =========================================================================
-    function sincronizarCartoesNativos() {
-      if (window.AndroidBridge && typeof window.AndroidBridge.syncKnownCards === 'function') {
-        try {
-          const nomes = cards.map(c => (typeof c === 'string' ? c : (c.nome || '')).trim()).filter(Boolean);
-          window.AndroidBridge.syncKnownCards(JSON.stringify(nomes));
-        } catch (e) {}
+    function sincronizarRegrasNativas() {
+      if (window.AndroidBridge) {
+        if (typeof window.AndroidBridge.syncKnownCards === 'function') {
+          try {
+            const nomes = cards.map(c => (typeof c === 'string' ? c : (c.nome || '')).trim()).filter(Boolean);
+            window.AndroidBridge.syncKnownCards(JSON.stringify(nomes));
+          } catch (e) {}
+        }
+        if (typeof window.AndroidBridge.syncLearnedRules === 'function') {
+          try {
+            window.AndroidBridge.syncLearnedRules(JSON.stringify(learnedRules));
+          } catch (e) {}
+        }
       }
     }
 
@@ -910,34 +963,49 @@
         if (Array.isArray(items) && items.length > 0) {
           const cardNames = cards.map(c => typeof c === 'string' ? c : c.nome);
           const novos = items.map((it, idx) => {
-            let cardName = String(it.cartao || '').trim();
-            if (!cardName || cardName === 'Cartão') {
-              cardName = cardNames[0] || 'Cartão Principal';
-            } else {
-              const match = cards.find(c => (typeof c === 'string' ? c : c.nome).toLowerCase() === cardName.toLowerCase());
-              if (match) {
-                cardName = typeof match === 'string' ? match : match.nome;
-              } else {
-                const coresCycle = ['purple', 'orange', 'cyan', 'amber', 'rose', 'emerald', 'slate'];
-                const preset = (typeof PRESET_CARTOES !== 'undefined' ? PRESET_CARTOES : []).find(p => p.nome.toLowerCase() === cardName.toLowerCase());
-                cards.push({
-                  nome: cardName,
-                  cor: preset ? preset.cor : coresCycle[cards.length % coresCycle.length],
-                  vencimento: 'Fatura Aberta'
-                });
-                if (typeof popularSelectCartoes === 'function') popularSelectCartoes();
-                if (typeof renderCartoesConfig === 'function') renderCartoesConfig();
+            const rawCand = String(it.local || 'Compra em Cartão').trim();
+            const rawFull = String(it.rawTexto || '').trim();
+            const normCand = removerAcentos(rawCand).toLowerCase();
+            const normFull = removerAcentos(rawFull).toLowerCase();
+
+            let finalLocal = rawCand;
+            let finalCartao = String(it.cartao || cardNames[0] || 'Cartão Principal');
+            let finalCat = it.categoria || categorizarAutomatico(rawCand);
+
+            // Consultar regras aprendidas de edições do usuário
+            for (const [k, rule] of Object.entries(learnedRules)) {
+              if (k && k.length >= 2 && (normCand.includes(k) || (normFull && normFull.includes(k)))) {
+                if (rule.local) finalLocal = rule.local;
+                if (rule.cartao) finalCartao = rule.cartao;
+                if (rule.categoria) finalCat = rule.categoria;
+                break;
               }
             }
+
+            if (!cards.some(c => (typeof c === 'string' ? c : c.nome).toLowerCase() === finalCartao.toLowerCase())) {
+              const coresCycle = ['purple', 'orange', 'cyan', 'amber', 'rose', 'emerald', 'slate'];
+              const preset = (typeof PRESET_CARTOES !== 'undefined' ? PRESET_CARTOES : []).find(p => p.nome.toLowerCase() === finalCartao.toLowerCase());
+              cards.push({
+                nome: finalCartao,
+                cor: preset ? preset.cor : coresCycle[cards.length % coresCycle.length],
+                vencimento: 'Fatura Aberta'
+              });
+              if (typeof popularSelectCartoes === 'function') popularSelectCartoes();
+              if (typeof renderCartoesConfig === 'function') renderCartoesConfig();
+            }
+
             return {
               id: safeId(it.id || ('notif_' + Date.now() + '_' + idx)),
               data: String(it.data || ''),
               mesRef: String(it.mesRef || getMesFromDataBR(it.data)),
-              cartao: cardName,
+              cartao: finalCartao,
               valor: Number(it.valor) || 0,
-              local: String(it.local || 'Compra Automática'),
-              categoria: categorizarAutomatico(it.local),
-              tipo: 'Notificação'
+              local: finalLocal,
+              rawLocal: it.rawLocal || rawCand,
+              rawTexto: rawFull,
+              categoria: finalCat,
+              tipo: 'Notificação',
+              metodo: 'Crédito'
             };
           }).filter(x => x.valor > 0);
 
@@ -1001,14 +1069,83 @@
             box.innerHTML = '<div class="text-slate-500 text-center py-2">Nenhuma notificação bancária interceptada ainda.</div>';
           } else {
             box.innerHTML = logs.map(l => `
-              <div class="border-b border-slate-800 pb-1">
-                <div class="text-slate-400">${escapeHTML(l.hora)} • ${escapeHTML(l.app)}</div>
+              <div class="border-b border-slate-800 pb-1.5 space-y-0.5">
+                <div class="flex justify-between items-center text-slate-400">
+                  <span>${escapeHTML(l.hora)} • ${escapeHTML(l.app)}</span>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded font-semibold ${String(l.status||'').includes('Capturado') ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">${escapeHTML(l.status || 'Interceptado')}</span>
+                </div>
                 <div class="text-white font-semibold">${escapeHTML(l.titulo)}</div>
-                <div class="text-slate-300">${escapeHTML(l.texto)}</div>
+                <div class="text-slate-300 text-[9.5px]">${escapeHTML(l.texto)}</div>
               </div>
             `).join('');
           }
         } catch (e) {}
+      }
+    }
+
+    // =========================================================================
+    // GERENCIAMENTO DA MEMÓRIA DE APRENDIZADO
+    // =========================================================================
+    function atualizarBadgeAprendizado() {
+      const badge = document.getElementById('cfg-aprendizado-badge');
+      if (badge) {
+        const count = Object.keys(learnedRules || {}).length;
+        badge.textContent = `${count} aprendida${count === 1 ? '' : 's'}`;
+      }
+    }
+
+    function toggleVerLojasAprendidas() {
+      const box = document.getElementById('cfg-aprendizado-lista');
+      if (!box) return;
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        renderLojasAprendidas();
+      }
+    }
+
+    function renderLojasAprendidas() {
+      const box = document.getElementById('cfg-aprendizado-lista');
+      if (!box) return;
+      const entries = Object.entries(learnedRules || {});
+      if (entries.length === 0) {
+        box.innerHTML = '<div class="text-slate-500 text-center py-2">Nenhuma loja aprendida ainda. Quando você editar o nome de um lançamento, o app memorizará aqui!</div>';
+        return;
+      }
+      box.innerHTML = `
+        <div class="flex justify-between items-center pb-1 mb-1 border-b border-slate-800">
+          <span class="font-bold text-slate-400 text-[10px]">Padrão Detectado ➔ Nome Aprendido</span>
+          <button type="button" onclick="limparTodasLojasAprendidas()" class="text-rose-400 hover:text-rose-300 text-[9.5px]">Limpar Tudo</button>
+        </div>
+      ` + entries.map(([k, rule]) => `
+        <div class="bg-slate-800/80 border border-slate-700/60 rounded p-1.5 flex items-center justify-between">
+          <div class="truncate mr-2">
+            <span class="font-mono text-slate-400">${escapeHTML(k)}</span>
+            <span class="text-slate-500 mx-1">➔</span>
+            <span class="text-white font-semibold">${escapeHTML(rule.local || '')}</span>
+            <span class="text-[9.5px] text-indigo-300 ml-1">(${escapeHTML(rule.categoria || '')} • ${escapeHTML(rule.cartao || '')})</span>
+          </div>
+          <button type="button" onclick="removerLojaAprendida('${escapeHTML(k)}')" class="text-slate-400 hover:text-rose-400 p-1">
+            <i data-lucide="trash-2" class="w-3 h-3"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function removerLojaAprendida(k) {
+      if (learnedRules) delete learnedRules[k];
+      if (customRules) delete customRules[k];
+      salvarLocal();
+      renderLojasAprendidas();
+      atualizarBadgeAprendizado();
+    }
+
+    function limparTodasLojasAprendidas() {
+      if (confirm('Deseja limpar todas as lojas aprendidas da memória?')) {
+        learnedRules = {};
+        salvarLocal();
+        renderLojasAprendidas();
+        atualizarBadgeAprendizado();
       }
     }
 
@@ -1259,6 +1396,7 @@
       renderExtrato(totais.txMes);
       renderGraficos(totais);
       renderHabitos(totais);
+      atualizarBadgeAprendizado();
       atualizarSimulador(document.getElementById('slider-eco').value || 25);
     }
 
@@ -1457,19 +1595,34 @@
     }
 
     // =========================================================================
-    // EDIÇÃO DE TRANSAÇÃO + REGRAS AUTOMÁTICAS
+    // EDIÇÃO DE TRANSAÇÃO + APRENDIZADO INTELIGENTE
     // =========================================================================
     function abrirModalEditar(id) {
       const tx = transactions.find(t => safeId(t.id) === id);
       if (!tx) return;
       renderSelectsCartoes();
       document.getElementById('ed-id').value = id;
+      document.getElementById('ed-orig-local').value = tx.local || '';
+      document.getElementById('ed-orig-rawlocal').value = tx.rawLocal || tx.local || '';
+      document.getElementById('ed-orig-rawtexto').value = tx.rawTexto || '';
+
       document.getElementById('ed-cartao').value = tx.cartao;
       document.getElementById('ed-mesref').value = tx.mesRef || getMesFromDataBR(tx.data);
       document.getElementById('ed-local').value = tx.local;
       document.getElementById('ed-valor').value = Number(tx.valor).toFixed(2);
       document.getElementById('ed-cat').value = CATEGORIAS.includes(tx.categoria) ? tx.categoria : 'Outros';
-      document.getElementById('ed-regra').checked = false;
+      document.getElementById('ed-aprender').checked = true;
+
+      // Se a transação possui o texto bruto da notificação, exibir no modal
+      const notifBox = document.getElementById('ed-notif-box');
+      const notifRaw = document.getElementById('ed-notif-raw');
+      if (tx.rawTexto && tx.rawTexto.trim()) {
+        notifRaw.textContent = tx.rawTexto;
+        notifBox.classList.remove('hidden');
+      } else {
+        notifBox.classList.add('hidden');
+      }
+
       document.getElementById('modalEditarGasto').classList.remove('hidden');
       lucide.createIcons();
     }
@@ -1492,23 +1645,71 @@
 
       if (!novoLocal || isNaN(novoValor) || novoValor <= 0) return;
 
+      const origLocal = document.getElementById('ed-orig-local').value;
+      const origRawLocal = document.getElementById('ed-orig-rawlocal').value;
+      const origRawTexto = document.getElementById('ed-orig-rawtexto').value;
+
       tx.local = novoLocal;
       tx.categoria = novaCat;
       tx.valor = novoValor;
       tx.cartao = novoCartao;
       tx.mesRef = novoMes;
 
-      if (document.getElementById('ed-regra').checked) {
-        const key = removerAcentos(novoLocal.toLowerCase()).trim();
-        if (key.length >= 2) {
-          customRules[key] = novaCat;
-          // Aplica também às transações existentes com o mesmo nome
-          transactions.forEach(item => {
-            if (removerAcentos((item.local || '').toLowerCase()).includes(key)) {
-              item.categoria = novaCat;
-            }
-          });
+      const deveAprender = document.getElementById('ed-aprender').checked;
+      if (deveAprender) {
+        const keys = new Set();
+        if (origLocal) keys.add(removerAcentos(origLocal).toLowerCase().trim());
+        if (origRawLocal) keys.add(removerAcentos(origRawLocal).toLowerCase().trim());
+        if (novoLocal) keys.add(removerAcentos(novoLocal).toLowerCase().trim());
+
+        // Se houver texto bruto da notificação, tentar extrair a loja original
+        if (origRawTexto) {
+          const matchLoja = origRawTexto.match(/(?:em|para|no estabelecimento|na loja|no|na)\s+([A-Za-z0-9À-ÿ\s.\*\-_'/]{2,40})/i);
+          if (matchLoja && matchLoja[1]) {
+            keys.add(removerAcentos(matchLoja[1]).toLowerCase().trim());
+          }
         }
+
+        keys.forEach(k => {
+          if (k && k.length >= 2) {
+            learnedRules[k] = {
+              local: novoLocal,
+              categoria: novaCat,
+              cartao: novoCartao,
+              atualizadoEm: new Date().toISOString()
+            };
+            customRules[k] = novaCat;
+          }
+        });
+
+        // Atualização retroativa em todas as compras com o mesmo nome na tabela
+        let retroCount = 0;
+        transactions.forEach(item => {
+          if (item.id !== tx.id) {
+            const itemLocal = removerAcentos(item.local || '').toLowerCase().trim();
+            const itemRaw = item.rawLocal ? removerAcentos(item.rawLocal).toLowerCase().trim() : '';
+            if (keys.has(itemLocal) || (itemRaw && keys.has(itemRaw))) {
+              item.local = novoLocal;
+              item.categoria = novaCat;
+              item.cartao = novoCartao;
+              retroCount++;
+            }
+          }
+        });
+
+        salvarLocal();
+        atualizarTudo();
+        fecharModalEditar();
+
+        const toast = document.getElementById('toast-captura');
+        const msg = document.getElementById('toast-captura-msg');
+        if (toast && msg) {
+          msg.textContent = retroCount > 0 
+            ? `✨ Aprendido! "${novoLocal}" atualizado em +${retroCount} compra(s) desta loja.` 
+            : `✨ O app aprendeu: "${novoLocal}" (${novaCat} • ${novoCartao}).`;
+          toast.classList.remove('hidden');
+        }
+        return;
       }
 
       salvarLocal();

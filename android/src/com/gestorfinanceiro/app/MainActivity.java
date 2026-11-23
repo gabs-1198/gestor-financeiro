@@ -250,8 +250,15 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void syncLearnedRules(String jsonRules) {
+            if (jsonRules == null) return;
+            SharedPreferences prefs = getSharedPreferences(NotificacaoListener.PREFS_NAME, MODE_PRIVATE);
+            prefs.edit().putString(NotificacaoListener.KEY_LEARNED_RULES, jsonRules).apply();
+        }
+
+        @JavascriptInterface
         public boolean testNotificationParse(String cartao, String texto) {
-            return NotificacaoListener.processarNotificacao(MainActivity.this, cartao, "bancoteste", "Teste", texto);
+            return NotificacaoListener.processarNotificacao(MainActivity.this, cartao, "bancoteste", "Teste", texto, texto);
         }
 
         @JavascriptInterface

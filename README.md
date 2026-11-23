@@ -15,10 +15,10 @@ Um aplicativo financeiro pessoal **100% offline, gratuito e privado**, criado pa
 
 ## ✨ Funcionalidades
 
-- **🔔 Leitor Automático de Compras (Offline):** Intercepta notificações bancárias de compras em tempo real (Nubank, Itaú, Mercado Pago, Inter, C6, Santander, Bradesco, PicPay, etc.) e cadastra seus gastos automaticamente sem precisar abrir o app nem digitar nada!
+- **🔔 Leitor Automático & Inteligente (Filtro Estrito de Crédito):** Intercepta notificações bancárias completas (incluindo textos expandidos e metadados agrupados) e valida rigorosamente compras em **Cartão de Crédito**, rejeitando automaticamente débitos, transferências, pagamentos via Pix ou saldo da conta.
 - **Assistente de Configuração Inicial:** Personalize seu nome, teto mensal de gastos e adicione quantos cartões quiser (Nubank, Itaú, Mercado Pago, Inter, C6, Santander, etc.).
 - **Histórico Mensal & Comparativo:** Navegue entre meses (`◀ Mês ▶`) para consultar faturas passadas e ver a variação percentual em relação ao mês anterior.
-- **Editar Compras & Regras Automáticas:** Toque em qualquer compra para corrigir valores/categorias e salve regras do tipo *"Sempre classificar esta loja assim"* para importações futuras.
+- **🧠 Aprendizado Contínuo por Edição:** Ao editar uma compra na tabela, o app aprende o nome comercial real da loja (eliminando gateways como `PG *`, `MP *`, `IFOOD *`), atualiza retroativamente compras anteriores daquele mesmo local e sincroniza as regras com o serviço nativo Android.
 - **Parcelamentos & Metas por Categoria:** Lance compras parceladas (`1x` a `12x`) projetadas automaticamente nos próximos meses e crie tetos individuais por categoria.
 - **Subir Faturas para Atualizar o Preço:**
   - Envie arquivos exportados pelo seu banco (`.xlsx`, `.xls`, `.csv`, `.ofx`, `.txt`), cole texto ou ajuste só o valor fechado.
